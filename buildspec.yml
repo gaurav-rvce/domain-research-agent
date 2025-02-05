@@ -1,4 +1,3 @@
----
 version: 0.2
 
 env:
@@ -13,35 +12,24 @@ phases:
   pre_build:
     commands:
       - echo "Logging into AWS ECR..."
-      - |
-        aws ecr get-login-password --region $AWS_DEFAULT_REGION | \
-        docker login --username AWS --password-stdin \
-        161313707195.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com
-      - COMMIT_HASH=latest
+      - aws ecr get-login-password --region $AWS_DEFAULT_REGION | docker login --username AWS --password-stdin 161313707195.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com
+      - COMMIT_HASH=$(git rev-parse --short HEAD)
       - IMAGE_TAG=${COMMIT_HASH:-latest}
       - echo "Using image tag: $IMAGE_TAG"
 
   build:
     commands:
-      - echo "Fetching the commit hash..."
-      - echo "Checking the repository..."
-      - git status
       - echo "Building Docker image..."
       - docker build -t $IMAGE_REPO_NAME:$IMAGE_TAG .
-      - |
-        docker tag $IMAGE_REPO_NAME:$IMAGE_TAG \
-        161313707195.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com/$IMAGE_REPO_NAME:$IMAGE_TAG
+      - docker tag $IMAGE_REPO_NAME:$IMAGE_TAG 161313707195.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com/$IMAGE_REPO_NAME:$IMAGE_TAG
 
   post_build:
     commands:
       - echo "Pushing Docker image to Amazon ECR..."
-      - |
-        docker push \
-        161313707195.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com/$IMAGE_REPO_NAME:$IMAGE_TAG
+      - docker push 161313707195.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com/$IMAGE_REPO_NAME:$IMAGE_TAG
       - echo "Updating ECS service..."
-      - |
-        IMAGE_URI="161313707195.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com/$IMAGE_REPO_NAME:$IMAGE_TAG"
-        printf '{"imageUri":"%s"}' "$IMAGE_URI" > imagedefinitions.json
+      - IMAGE_URI="161313707195.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com/$IMAGE_REPO_NAME:$IMAGE_TAG"
+      - printf '{"imageUri":"%s"}' "$IMAGE_URI" > imagedefinitions.json
       - echo "Image update complete!"
 
 artifacts:
