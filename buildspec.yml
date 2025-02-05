@@ -13,9 +13,10 @@ phases:
     commands:
       - echo "Logging into AWS ECR..."
       - aws ecr get-login-password --region $AWS_DEFAULT_REGION | docker login --username AWS --password-stdin 161313707195.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com
+      - echo "Connected to ecr"
       - COMMIT_HASH=$(git rev-parse --short HEAD)
-      - IMAGE_TAG=${COMMIT_HASH:-latest}
-      - echo "Using image tag: $IMAGE_TAG"
+      - IMAGE_TAG="latest"
+      - echo "Using image tag $IMAGE_TAG"
 
   build:
     commands:
