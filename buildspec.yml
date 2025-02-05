@@ -27,10 +27,8 @@ phases:
     commands:
       - echo "Pushing Docker image to Amazon ECR..."
       - docker push 161313707195.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com/$IMAGE_REPO_NAME:$IMAGE_TAG
-      - echo "Retrieving image digest..."
-      - IMAGE_DIGEST=$(docker inspect --format='{{index .RepoDigests 0}}' $IMAGE_REPO_NAME:$IMAGE_TAG | cut -d '@' -f 2)
-      - echo "Image digest: $IMAGE_DIGEST"
-      - IMAGE_URI="161313707195.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com/$IMAGE_REPO_NAME@sha256:$IMAGE_DIGEST"
+      - echo "Updating ECS service..."
+      - IMAGE_URI="161313707195.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com/$IMAGE_REPO_NAME:$IMAGE_TAG"
       - printf '{"imageUri":"%s"}' "$IMAGE_URI" > imagedefinitions.json
       - echo "Image update complete!!"
 
