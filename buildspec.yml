@@ -30,7 +30,7 @@ phases:
       - echo "Updating ECS service..."
       - IMAGE_URI="161313707195.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com/$IMAGE_REPO_NAME:$IMAGE_TAG"
       - printf '{"imageUri":"%s"}' "$IMAGE_URI" > imagedefinitions.json
-      - echo "Image update complete!"
+      - echo "Image update complete!!"
 
 artifacts:
   files:
