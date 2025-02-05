@@ -1,0 +1,19 @@
+{
+    "family": "domain-research-task",
+    "containerDefinitions": [
+      {
+        "name": "domain-research-container",
+        "image": "161313707195.dkr.ecr.us-east-1.amazonaws.com/domain-research-agent:latest",
+        "memory": 512,
+        "cpu": 256,
+        "essential": true,
+        "portMappings": [
+          {
+            "containerPort": 8000,
+            "hostPort": 8000
+          }
+        ]
+      }
+    ]
+  }
+  
