@@ -1,0 +1,172 @@
+AWSTemplateFormatVersion: '2010-09-09'
+
+Parameters:
+  GitHubRepo:
+    Type: String
+    Description: GitHub repository name (owner/repo format)
+
+  GitHubBranch:
+    Type: String
+    Default: main
+    Description: Branch to trigger pipeline
+
+  GitHubOAuthToken:
+    Type: String
+    NoEcho: true
+    Description: GitHub OAuth Token for CodePipeline access
+
+  AppName:
+    Type: String
+    Default: domain-research-agent-app
+    Description: Name of the application
+
+  VPCId:
+    Type: AWS::EC2::VPC::Id
+    Description: VPC ID where ECS tasks will be deployed
+
+  Subnets:
+    Type: List<AWS::EC2::Subnet::Id>
+    Description: Subnet IDs for ECS tasks
+
+  SecurityGroupId:
+    Type: AWS::EC2::SecurityGroup::Id
+    Description: Security Group ID for ECS tasks
+
+Resources:
+  # Security Group for ECS Service
+  SecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Security group for ECS tasks
+      VpcId: !Ref VPCId
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 8000
+          ToPort: 8000
+          CidrIp: 0.0.0.0/0
+
+  # ECR Repository
+  ECRRepository:
+    Type: AWS::ECR::Repository
+    Properties:
+      RepositoryName: !Ref AppName
+
+  # ECS Cluster
+  ECSCluster:
+    Type: AWS::ECS::Cluster
+    Properties:
+      ClusterName: !Ref AppName
+
+  # ECS Task Definition
+  ECSTaskDefinition:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      Family: !Ref AppName
+      Cpu: "512"
+      Memory: "1024"
+      NetworkMode: awsvpc
+      RequiresCompatibilities:
+        - FARGATE
+      ExecutionRoleArn: !GetAtt ECSTaskExecutionRole.Arn
+      ContainerDefinitions:
+        - Name: !Ref AppName
+          Image: !Sub "${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/${AppName}:latest"
+          Essential: true
+          PortMappings:
+            - ContainerPort: 8000
+          Environment:
+            - Name: ENV
+              Value: production
+
+  # Application Load Balancer (ALB)
+  ApplicationLoadBalancer:
+    Type: AWS::ElasticLoadBalancingV2::LoadBalancer
+    Properties:
+      Name: !Sub "${AppName}-ALB"
+      Scheme: internet-facing
+      Subnets: !Ref Subnets
+      SecurityGroups:
+        - !Ref SecurityGroupId
+
+  # Target Group for ECS Service
+  TargetGroup:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    Properties:
+      VpcId: !Ref VPCId
+      Protocol: HTTP
+      Port: 8000
+      TargetType: ip
+
+  # ALB Listener
+  Listener:
+    Type: AWS::ElasticLoadBalancingV2::Listener
+    Properties:
+      LoadBalancerArn: !Ref ApplicationLoadBalancer
+      Protocol: HTTP
+      Port: 80
+      DefaultActions:
+        - Type: forward
+          TargetGroupArn: !Ref TargetGroup
+
+  # ALB Listener Rule
+  ListenerRule:
+    Type: AWS::ElasticLoadBalancingV2::ListenerRule
+    Properties:
+      ListenerArn: !Ref Listener
+      Priority: 1
+      Conditions:
+        - Field: path-pattern
+          Values: ["/"]
+      Actions:
+        - Type: forward
+          TargetGroupArn: !Ref TargetGroup
+
+  # ECS Service
+  ECSService:
+    Type: AWS::ECS::Service
+    DependsOn: ListenerRule
+    Properties:
+      Cluster: !Ref ECSCluster
+      TaskDefinition: !Ref ECSTaskDefinition
+      LaunchType: FARGATE
+      DesiredCount: 2
+      NetworkConfiguration:
+        AwsvpcConfiguration:
+          AssignPublicIp: ENABLED
+          Subnets: !Ref Subnets
+          SecurityGroups:
+            - !Ref SecurityGroupId
+      LoadBalancers:
+        - ContainerName: !Ref AppName
+          ContainerPort: 8000
+          TargetGroupArn: !Ref TargetGroup
+
+  # IAM Role for ECS Task Execution
+  ECSTaskExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: ecs-tasks.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: ECRPullPolicy
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - ecr:GetAuthorizationToken
+                  - ecr:BatchCheckLayerAvailability
+                  - ecr:GetDownloadUrlForLayer
+                  - ecr:BatchGetImage
+                Resource: "*"
+
+Outputs:
+  ECRRepositoryUri:
+    Value: !GetAtt ECRRepository.RepositoryUri
+  LoadBalancerDNS:
+    Value: !GetAtt ApplicationLoadBalancer.DNSName
