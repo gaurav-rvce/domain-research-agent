@@ -2,6 +2,17 @@ from typing import Dict
 import os
 import json
 from datetime import datetime
+import boto3
+import os
+
+# Read S3 bucket name from environment variable
+BUCKET_NAME = os.getenv("S3_BUCKET")
+
+if not BUCKET_NAME:
+    raise ValueError("S3_BUCKET environment variable is not set.")
+
+# Initialize S3 client
+s3 = boto3.client("s3")
 
 COMPANY_PROFILE_TEMPLATE = """# {company_name}
 
@@ -68,26 +79,44 @@ async def write_company_profile(company_name: str, company_info: Dict) -> None:
 
 async def write_domain_summary(summary: str) -> None:
     """
-    Write domain summary to a markdown file.
-    
+    Write the domain summary to a local file and upload it to S3.
+
     Args:
-        summary (str): The domain summary to write
+        summary (str): The domain summary content.
     """
     try:
-        # Create output directory if it doesn't exist
+        # Create local output directory if it doesn't exist
         os.makedirs("research_output", exist_ok=True)
-        
-        filename = f"research_output/domain_summary.md"
-        
+
+        filename = "research_output/domain_summary.md"
+
         # Add timestamp to summary
         content = f"{summary}\n\n---\n*Generated on {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}*"
-        
-        # Write to file
-        with open(filename, "w") as f:
+
+        # Write to local file
+        with open(filename, "w", encoding="utf-8") as f:
             f.write(content)
-            
+
+        print(f"Domain summary saved locally: {filename}")
+
+        # Upload to S3
+        s3_key = "domain_summary.md"
+        s3.put_object(
+            Bucket=BUCKET_NAME,
+            Key=s3_key,
+            Body=content.encode("utf-8"),
+            ContentType="text/markdown"
+        )
+
+        print(f"Domain summary uploaded to S3: s3://{BUCKET_NAME}/{s3_key}")
+
+    except FileNotFoundError as e:
+        print(f"Error: Directory not found - {e}")
+    except boto3.exceptions.Boto3Error as e:
+        print(f"Error uploading to S3 - {e}")
     except Exception as e:
-        raise Exception(f"Error writing domain summary: {str(e)}")
+        print(f"Unexpected error writing domain summary: {e}")
+
 
 def format_product_lines(product_lines: list) -> str:
     """Format product lines as markdown."""

@@ -6,6 +6,11 @@ import asyncio
 from .tools.web_search import search_companies
 from .tools.web_scraper import scrape_company_info
 from .tools.file_writer import write_company_profile, write_domain_summary
+import boto3
+import os
+
+s3 = boto3.client("s3")
+BUCKET_NAME = "aws-devops-kumar-us-east-1"
 
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 

@@ -2,9 +2,6 @@ AWSTemplateFormatVersion: "2010-09-09"
 Description: "CloudFormation template for deploying domain-research-agent app using ECS Fargate, CodeBuild, and CodePipeline"
 
 Parameters:
-  S3BucketName:
-    Type: String
-    Description: "The S3 bucket where domain summaries will be stored."
   OpenAIApiKey:
     Type: String
     NoEcho: true
@@ -107,8 +104,6 @@ Resources:
           Environment:
             - Name: OPENAI_API_KEY
               Value: !Ref OpenAIApiKey
-            - Name: S3_BUCKET: 
-              Value: !Ref S3BucketName
 
   ECSService:
     Type: AWS::ECS::Service
