@@ -203,7 +203,7 @@ Resources:
               commands:
                 - docker push $ECR_REPOSITORY_URI:latest
                 - echo "Updating ECS Service..."
-                - aws ecs update-service --cluster !Ref ECSCluster --service !Ref ECSService --force-new-deployment
+                
 
   CodePipeline:
     Type: AWS::CodePipeline::Pipeline
