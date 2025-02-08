@@ -6,10 +6,6 @@ import asyncio
 from .tools.web_search import search_companies
 from .tools.web_scraper import scrape_company_info
 from .tools.file_writer import write_company_profile, write_domain_summary
-import boto3
-import os
-
-
 
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
@@ -123,17 +119,17 @@ async def generate_domain_summary(results: Dict) -> None:
         results (Dict): The complete research results
     """
     summary_prompt = """Based on the following research results, create a comprehensive domain summary that includes:
-    1. Market overview
-    2. Key players and their positions
-    3. Product trends and innovations
-    4. Market opportunities
-    5. Potential investment thesis
+1. Market overview
+2. Key players and their positions
+3. Product trends and innovations
+4. Market opportunities
+5. Potential investment thesis
 
-    Research Results:
-    {results}
+Research Results:
+{results}
 
-    Format the response as a markdown document."""
-        
+Format the response as a markdown document."""
+    
     response = client.chat.completions.create(
         model="gpt-4-turbo-preview",
         messages=[
