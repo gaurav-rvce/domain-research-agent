@@ -107,7 +107,7 @@ Resources:
           Environment:
             - Name: OPENAI_API_KEY
               Value: !Ref OpenAIApiKey
-            - Name: S3_BUCKET: 
+            - Name: S3_BUCKET
               Value: !Ref S3BucketName
 
   ECSService:
@@ -202,6 +202,8 @@ Resources:
             post_build:
               commands:
                 - docker push $ECR_REPOSITORY_URI:latest
+                - echo "Updating ECS Service..."
+                - aws ecs update-service --cluster !Ref ECSCluster --service !Ref ECSService --force-new-deployment
 
   CodePipeline:
     Type: AWS::CodePipeline::Pipeline
